@@ -1,0 +1,1318 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "ML Finale",
+      "provenance": [],
+      "collapsed_sections": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "oU6wd1Ly4-ir",
+        "outputId": "131919e9-d182-4fb4-c0c4-994004f469a2"
+      },
+      "source": [
+        "import statsmodels.api as sm\n",
+        "import pandas as pd                               \n",
+        "import matplotlib.pyplot as plt  \n",
+        "import seaborn as sns\n",
+        "import numpy as np  \n",
+        "from statsmodels.formula.api import logit, glm, ols\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "from sklearn.preprocessing import StandardScaler, Normalizer\n",
+        "from sklearn.model_selection import GridSearchCV\n",
+        "from sklearn.linear_model import LogisticRegression \n",
+        "from sklearn.tree import DecisionTreeClassifier\n",
+        "from sklearn.neighbors import KNeighborsClassifier\n",
+        "from sklearn.naive_bayes import GaussianNB\n",
+        "from sklearn.feature_selection import SelectKBest, f_classif\n",
+        "from sklearn.pipeline import Pipeline\n",
+        "from sklearn.pipeline import make_pipeline \n",
+        "from sklearn.feature_selection import chi2\n",
+        "from sklearn.ensemble import StackingClassifier\n",
+        "from sklearn.model_selection import KFold\n",
+        "from sklearn.metrics import confusion_matrix,accuracy_score,roc_curve,classification_report                            "
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "/usr/local/lib/python3.7/dist-packages/statsmodels/tools/_testing.py:19: FutureWarning: pandas.util.testing is deprecated. Use the functions in the public API at pandas.testing instead.\n",
+            "  import pandas.util.testing as tm\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "resources": {
+            "http://localhost:8080/nbextensions/google.colab/files.js": {
+              "data": "Ly8gQ29weXJpZ2h0IDIwMTcgR29vZ2xlIExMQwovLwovLyBMaWNlbnNlZCB1bmRlciB0aGUgQXBhY2hlIExpY2Vuc2UsIFZlcnNpb24gMi4wICh0aGUgIkxpY2Vuc2UiKTsKLy8geW91IG1heSBub3QgdXNlIHRoaXMgZmlsZSBleGNlcHQgaW4gY29tcGxpYW5jZSB3aXRoIHRoZSBMaWNlbnNlLgovLyBZb3UgbWF5IG9idGFpbiBhIGNvcHkgb2YgdGhlIExpY2Vuc2UgYXQKLy8KLy8gICAgICBodHRwOi8vd3d3LmFwYWNoZS5vcmcvbGljZW5zZXMvTElDRU5TRS0yLjAKLy8KLy8gVW5sZXNzIHJlcXVpcmVkIGJ5IGFwcGxpY2FibGUgbGF3IG9yIGFncmVlZCB0byBpbiB3cml0aW5nLCBzb2Z0d2FyZQovLyBkaXN0cmlidXRlZCB1bmRlciB0aGUgTGljZW5zZSBpcyBkaXN0cmlidXRlZCBvbiBhbiAiQVMgSVMiIEJBU0lTLAovLyBXSVRIT1VUIFdBUlJBTlRJRVMgT1IgQ09ORElUSU9OUyBPRiBBTlkgS0lORCwgZWl0aGVyIGV4cHJlc3Mgb3IgaW1wbGllZC4KLy8gU2VlIHRoZSBMaWNlbnNlIGZvciB0aGUgc3BlY2lmaWMgbGFuZ3VhZ2UgZ292ZXJuaW5nIHBlcm1pc3Npb25zIGFuZAovLyBsaW1pdGF0aW9ucyB1bmRlciB0aGUgTGljZW5zZS4KCi8qKgogKiBAZmlsZW92ZXJ2aWV3IEhlbHBlcnMgZm9yIGdvb2dsZS5jb2xhYiBQeXRob24gbW9kdWxlLgogKi8KKGZ1bmN0aW9uKHNjb3BlKSB7CmZ1bmN0aW9uIHNwYW4odGV4dCwgc3R5bGVBdHRyaWJ1dGVzID0ge30pIHsKICBjb25zdCBlbGVtZW50ID0gZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnc3BhbicpOwogIGVsZW1lbnQudGV4dENvbnRlbnQgPSB0ZXh0OwogIGZvciAoY29uc3Qga2V5IG9mIE9iamVjdC5rZXlzKHN0eWxlQXR0cmlidXRlcykpIHsKICAgIGVsZW1lbnQuc3R5bGVba2V5XSA9IHN0eWxlQXR0cmlidXRlc1trZXldOwogIH0KICByZXR1cm4gZWxlbWVudDsKfQoKLy8gTWF4IG51bWJlciBvZiBieXRlcyB3aGljaCB3aWxsIGJlIHVwbG9hZGVkIGF0IGEgdGltZS4KY29uc3QgTUFYX1BBWUxPQURfU0laRSA9IDEwMCAqIDEwMjQ7CgpmdW5jdGlvbiBfdXBsb2FkRmlsZXMoaW5wdXRJZCwgb3V0cHV0SWQpIHsKICBjb25zdCBzdGVwcyA9IHVwbG9hZEZpbGVzU3RlcChpbnB1dElkLCBvdXRwdXRJZCk7CiAgY29uc3Qgb3V0cHV0RWxlbWVudCA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKG91dHB1dElkKTsKICAvLyBDYWNoZSBzdGVwcyBvbiB0aGUgb3V0cHV0RWxlbWVudCB0byBtYWtlIGl0IGF2YWlsYWJsZSBmb3IgdGhlIG5leHQgY2FsbAogIC8vIHRvIHVwbG9hZEZpbGVzQ29udGludWUgZnJvbSBQeXRob24uCiAgb3V0cHV0RWxlbWVudC5zdGVwcyA9IHN0ZXBzOwoKICByZXR1cm4gX3VwbG9hZEZpbGVzQ29udGludWUob3V0cHV0SWQpOwp9CgovLyBUaGlzIGlzIHJvdWdobHkgYW4gYXN5bmMgZ2VuZXJhdG9yIChub3Qgc3VwcG9ydGVkIGluIHRoZSBicm93c2VyIHlldCksCi8vIHdoZXJlIHRoZXJlIGFyZSBtdWx0aXBsZSBhc3luY2hyb25vdXMgc3RlcHMgYW5kIHRoZSBQeXRob24gc2lkZSBpcyBnb2luZwovLyB0byBwb2xsIGZvciBjb21wbGV0aW9uIG9mIGVhY2ggc3RlcC4KLy8gVGhpcyB1c2VzIGEgUHJvbWlzZSB0byBibG9jayB0aGUgcHl0aG9uIHNpZGUgb24gY29tcGxldGlvbiBvZiBlYWNoIHN0ZXAsCi8vIHRoZW4gcGFzc2VzIHRoZSByZXN1bHQgb2YgdGhlIHByZXZpb3VzIHN0ZXAgYXMgdGhlIGlucHV0IHRvIHRoZSBuZXh0IHN0ZXAuCmZ1bmN0aW9uIF91cGxvYWRGaWxlc0NvbnRpbnVlKG91dHB1dElkKSB7CiAgY29uc3Qgb3V0cHV0RWxlbWVudCA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKG91dHB1dElkKTsKICBjb25zdCBzdGVwcyA9IG91dHB1dEVsZW1lbnQuc3RlcHM7CgogIGNvbnN0IG5leHQgPSBzdGVwcy5uZXh0KG91dHB1dEVsZW1lbnQubGFzdFByb21pc2VWYWx1ZSk7CiAgcmV0dXJuIFByb21pc2UucmVzb2x2ZShuZXh0LnZhbHVlLnByb21pc2UpLnRoZW4oKHZhbHVlKSA9PiB7CiAgICAvLyBDYWNoZSB0aGUgbGFzdCBwcm9taXNlIHZhbHVlIHRvIG1ha2UgaXQgYXZhaWxhYmxlIHRvIHRoZSBuZXh0CiAgICAvLyBzdGVwIG9mIHRoZSBnZW5lcmF0b3IuCiAgICBvdXRwdXRFbGVtZW50Lmxhc3RQcm9taXNlVmFsdWUgPSB2YWx1ZTsKICAgIHJldHVybiBuZXh0LnZhbHVlLnJlc3BvbnNlOwogIH0pOwp9CgovKioKICogR2VuZXJhdG9yIGZ1bmN0aW9uIHdoaWNoIGlzIGNhbGxlZCBiZXR3ZWVuIGVhY2ggYXN5bmMgc3RlcCBvZiB0aGUgdXBsb2FkCiAqIHByb2Nlc3MuCiAqIEBwYXJhbSB7c3RyaW5nfSBpbnB1dElkIEVsZW1lbnQgSUQgb2YgdGhlIGlucHV0IGZpbGUgcGlja2VyIGVsZW1lbnQuCiAqIEBwYXJhbSB7c3RyaW5nfSBvdXRwdXRJZCBFbGVtZW50IElEIG9mIHRoZSBvdXRwdXQgZGlzcGxheS4KICogQHJldHVybiB7IUl0ZXJhYmxlPCFPYmplY3Q+fSBJdGVyYWJsZSBvZiBuZXh0IHN0ZXBzLgogKi8KZnVuY3Rpb24qIHVwbG9hZEZpbGVzU3RlcChpbnB1dElkLCBvdXRwdXRJZCkgewogIGNvbnN0IGlucHV0RWxlbWVudCA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKGlucHV0SWQpOwogIGlucHV0RWxlbWVudC5kaXNhYmxlZCA9IGZhbHNlOwoKICBjb25zdCBvdXRwdXRFbGVtZW50ID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQob3V0cHV0SWQpOwogIG91dHB1dEVsZW1lbnQuaW5uZXJIVE1MID0gJyc7CgogIGNvbnN0IHBpY2tlZFByb21pc2UgPSBuZXcgUHJvbWlzZSgocmVzb2x2ZSkgPT4gewogICAgaW5wdXRFbGVtZW50LmFkZEV2ZW50TGlzdGVuZXIoJ2NoYW5nZScsIChlKSA9PiB7CiAgICAgIHJlc29sdmUoZS50YXJnZXQuZmlsZXMpOwogICAgfSk7CiAgfSk7CgogIGNvbnN0IGNhbmNlbCA9IGRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2J1dHRvbicpOwogIGlucHV0RWxlbWVudC5wYXJlbnRFbGVtZW50LmFwcGVuZENoaWxkKGNhbmNlbCk7CiAgY2FuY2VsLnRleHRDb250ZW50ID0gJ0NhbmNlbCB1cGxvYWQnOwogIGNvbnN0IGNhbmNlbFByb21pc2UgPSBuZXcgUHJvbWlzZSgocmVzb2x2ZSkgPT4gewogICAgY2FuY2VsLm9uY2xpY2sgPSAoKSA9PiB7CiAgICAgIHJlc29sdmUobnVsbCk7CiAgICB9OwogIH0pOwoKICAvLyBXYWl0IGZvciB0aGUgdXNlciB0byBwaWNrIHRoZSBmaWxlcy4KICBjb25zdCBmaWxlcyA9IHlpZWxkIHsKICAgIHByb21pc2U6IFByb21pc2UucmFjZShbcGlja2VkUHJvbWlzZSwgY2FuY2VsUHJvbWlzZV0pLAogICAgcmVzcG9uc2U6IHsKICAgICAgYWN0aW9uOiAnc3RhcnRpbmcnLAogICAgfQogIH07CgogIGNhbmNlbC5yZW1vdmUoKTsKCiAgLy8gRGlzYWJsZSB0aGUgaW5wdXQgZWxlbWVudCBzaW5jZSBmdXJ0aGVyIHBpY2tzIGFyZSBub3QgYWxsb3dlZC4KICBpbnB1dEVsZW1lbnQuZGlzYWJsZWQgPSB0cnVlOwoKICBpZiAoIWZpbGVzKSB7CiAgICByZXR1cm4gewogICAgICByZXNwb25zZTogewogICAgICAgIGFjdGlvbjogJ2NvbXBsZXRlJywKICAgICAgfQogICAgfTsKICB9CgogIGZvciAoY29uc3QgZmlsZSBvZiBmaWxlcykgewogICAgY29uc3QgbGkgPSBkb2N1bWVudC5jcmVhdGVFbGVtZW50KCdsaScpOwogICAgbGkuYXBwZW5kKHNwYW4oZmlsZS5uYW1lLCB7Zm9udFdlaWdodDogJ2JvbGQnfSkpOwogICAgbGkuYXBwZW5kKHNwYW4oCiAgICAgICAgYCgke2ZpbGUudHlwZSB8fCAnbi9hJ30pIC0gJHtmaWxlLnNpemV9IGJ5dGVzLCBgICsKICAgICAgICBgbGFzdCBtb2RpZmllZDogJHsKICAgICAgICAgICAgZmlsZS5sYXN0TW9kaWZpZWREYXRlID8gZmlsZS5sYXN0TW9kaWZpZWREYXRlLnRvTG9jYWxlRGF0ZVN0cmluZygpIDoKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJ24vYSd9IC0gYCkpOwogICAgY29uc3QgcGVyY2VudCA9IHNwYW4oJzAlIGRvbmUnKTsKICAgIGxpLmFwcGVuZENoaWxkKHBlcmNlbnQpOwoKICAgIG91dHB1dEVsZW1lbnQuYXBwZW5kQ2hpbGQobGkpOwoKICAgIGNvbnN0IGZpbGVEYXRhUHJvbWlzZSA9IG5ldyBQcm9taXNlKChyZXNvbHZlKSA9PiB7CiAgICAgIGNvbnN0IHJlYWRlciA9IG5ldyBGaWxlUmVhZGVyKCk7CiAgICAgIHJlYWRlci5vbmxvYWQgPSAoZSkgPT4gewogICAgICAgIHJlc29sdmUoZS50YXJnZXQucmVzdWx0KTsKICAgICAgfTsKICAgICAgcmVhZGVyLnJlYWRBc0FycmF5QnVmZmVyKGZpbGUpOwogICAgfSk7CiAgICAvLyBXYWl0IGZvciB0aGUgZGF0YSB0byBiZSByZWFkeS4KICAgIGxldCBmaWxlRGF0YSA9IHlpZWxkIHsKICAgICAgcHJvbWlzZTogZmlsZURhdGFQcm9taXNlLAogICAgICByZXNwb25zZTogewogICAgICAgIGFjdGlvbjogJ2NvbnRpbnVlJywKICAgICAgfQogICAgfTsKCiAgICAvLyBVc2UgYSBjaHVua2VkIHNlbmRpbmcgdG8gYXZvaWQgbWVzc2FnZSBzaXplIGxpbWl0cy4gU2VlIGIvNjIxMTU2NjAuCiAgICBsZXQgcG9zaXRpb24gPSAwOwogICAgZG8gewogICAgICBjb25zdCBsZW5ndGggPSBNYXRoLm1pbihmaWxlRGF0YS5ieXRlTGVuZ3RoIC0gcG9zaXRpb24sIE1BWF9QQVlMT0FEX1NJWkUpOwogICAgICBjb25zdCBjaHVuayA9IG5ldyBVaW50OEFycmF5KGZpbGVEYXRhLCBwb3NpdGlvbiwgbGVuZ3RoKTsKICAgICAgcG9zaXRpb24gKz0gbGVuZ3RoOwoKICAgICAgY29uc3QgYmFzZTY0ID0gYnRvYShTdHJpbmcuZnJvbUNoYXJDb2RlLmFwcGx5KG51bGwsIGNodW5rKSk7CiAgICAgIHlpZWxkIHsKICAgICAgICByZXNwb25zZTogewogICAgICAgICAgYWN0aW9uOiAnYXBwZW5kJywKICAgICAgICAgIGZpbGU6IGZpbGUubmFtZSwKICAgICAgICAgIGRhdGE6IGJhc2U2NCwKICAgICAgICB9LAogICAgICB9OwoKICAgICAgbGV0IHBlcmNlbnREb25lID0gZmlsZURhdGEuYnl0ZUxlbmd0aCA9PT0gMCA/CiAgICAgICAgICAxMDAgOgogICAgICAgICAgTWF0aC5yb3VuZCgocG9zaXRpb24gLyBmaWxlRGF0YS5ieXRlTGVuZ3RoKSAqIDEwMCk7CiAgICAgIHBlcmNlbnQudGV4dENvbnRlbnQgPSBgJHtwZXJjZW50RG9uZX0lIGRvbmVgOwoKICAgIH0gd2hpbGUgKHBvc2l0aW9uIDwgZmlsZURhdGEuYnl0ZUxlbmd0aCk7CiAgfQoKICAvLyBBbGwgZG9uZS4KICB5aWVsZCB7CiAgICByZXNwb25zZTogewogICAgICBhY3Rpb246ICdjb21wbGV0ZScsCiAgICB9CiAgfTsKfQoKc2NvcGUuZ29vZ2xlID0gc2NvcGUuZ29vZ2xlIHx8IHt9OwpzY29wZS5nb29nbGUuY29sYWIgPSBzY29wZS5nb29nbGUuY29sYWIgfHwge307CnNjb3BlLmdvb2dsZS5jb2xhYi5fZmlsZXMgPSB7CiAgX3VwbG9hZEZpbGVzLAogIF91cGxvYWRGaWxlc0NvbnRpbnVlLAp9Owp9KShzZWxmKTsK",
+              "ok": true,
+              "headers": [
+                [
+                  "content-type",
+                  "application/javascript"
+                ]
+              ],
+              "status": 200,
+              "status_text": ""
+            }
+          },
+          "base_uri": "https://localhost:8080/",
+          "height": 74
+        },
+        "id": "lMpkqALF5BS6",
+        "outputId": "e3024942-6e00-44e9-e0ec-9af0b434698d"
+      },
+      "source": [
+        "from google.colab import files          #load the file\n",
+        "uploaded = files.upload()"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/html": [
+              "\n",
+              "     <input type=\"file\" id=\"files-c296c911-dc16-4afe-81bd-bb0d8a81bfa1\" name=\"files[]\" multiple disabled\n",
+              "        style=\"border:none\" />\n",
+              "     <output id=\"result-c296c911-dc16-4afe-81bd-bb0d8a81bfa1\">\n",
+              "      Upload widget is only available when the cell has been executed in the\n",
+              "      current browser session. Please rerun this cell to enable.\n",
+              "      </output>\n",
+              "      <script src=\"/nbextensions/google.colab/files.js\"></script> "
+            ],
+            "text/plain": [
+              "<IPython.core.display.HTML object>"
+            ]
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Saving heart.csv to heart.csv\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "K3Lo0fYR5F8i"
+      },
+      "source": [
+        "heart = pd.read_csv('heart.csv')         #read the file"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Dt5ugT8Y5dOy"
+      },
+      "source": [
+        "#Benchmark"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "wqSYkYY68Eqx"
+      },
+      "source": [
+        "heart = heart.drop(['thalach','slope'], axis=1)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "pfeFYBgI5LFZ"
+      },
+      "source": [
+        "# seperate predictor and response variable\n",
+        "x = heart.drop(['target'], axis=1)  \n",
+        "y = heart['target'] "
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "bKVhiSUN5PPM"
+      },
+      "source": [
+        "#split the data with test = 30%   train = 70%\n",
+        "X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.30) "
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "FEV6MN3f5UYR",
+        "outputId": "e9dab996-6c10-4a73-8d05-016ab98e0c5a"
+      },
+      "source": [
+        "# IMPLEMENTING DECISION TREE\n",
+        "model = DecisionTreeClassifier(criterion='entropy')\n",
+        "\n",
+        "fit_model = model.fit(X_train, y_train)                                       \n",
+        "pred_model = fit_model.predict(X_test)\n",
+        "df_acc_scores = accuracy_score(y_test, pred_model)\n",
+        "df_conf_matrix = confusion_matrix(y_test, pred_model)\n",
+        "print(\"confusion matrix\")\n",
+        "print(df_conf_matrix)\n",
+        "print('\\n')\n",
+        "print(\"Accuracy of Decision Tree:\", df_acc_scores*100,'\\n')\n",
+        "print(classification_report(y_test, pred_model))"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "confusion matrix\n",
+            "[[152   4]\n",
+            " [  3 149]]\n",
+            "\n",
+            "\n",
+            "Accuracy of Decision Tree: 97.72727272727273 \n",
+            "\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.98      0.97      0.98       156\n",
+            "           1       0.97      0.98      0.98       152\n",
+            "\n",
+            "    accuracy                           0.98       308\n",
+            "   macro avg       0.98      0.98      0.98       308\n",
+            "weighted avg       0.98      0.98      0.98       308\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "-wIWwOM55XYI",
+        "outputId": "b8a5045f-a2b9-4d08-8c75-9c29745f9812"
+      },
+      "source": [
+        "# IMPLEMENTING LOGISTIC REGRESSION\n",
+        "model = LogisticRegression(max_iter=1000)\n",
+        "\n",
+        "fit_model = model.fit(X_train, y_train)                                       \n",
+        "pred_model = fit_model.predict(X_test)\n",
+        "df_acc_scores = accuracy_score(y_test, pred_model)\n",
+        "df_conf_matrix = confusion_matrix(y_test, pred_model)\n",
+        "print(\"confusion matrix\")\n",
+        "print(df_conf_matrix)\n",
+        "print('\\n')\n",
+        "print(\"Accuracy of Logistic Regression:\", df_acc_scores*100,'\\n')\n",
+        "print(classification_report(y_test, pred_model))"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "confusion matrix\n",
+            "[[74 26]\n",
+            " [10 95]]\n",
+            "\n",
+            "\n",
+            "Accuracy of Logistic Regression: 82.4390243902439 \n",
+            "\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.88      0.74      0.80       100\n",
+            "           1       0.79      0.90      0.84       105\n",
+            "\n",
+            "    accuracy                           0.82       205\n",
+            "   macro avg       0.83      0.82      0.82       205\n",
+            "weighted avg       0.83      0.82      0.82       205\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "vAcm9cAR5ZfX",
+        "outputId": "2693be79-a59f-4c62-9cf7-aca581922dce"
+      },
+      "source": [
+        "# IMPLEMENTING KNN \n",
+        "model = KNeighborsClassifier()\n",
+        "\n",
+        "fit_model = model.fit(X_train, y_train)                                       \n",
+        "pred_model = fit_model.predict(X_test)\n",
+        "df_acc_scores = accuracy_score(y_test, pred_model)\n",
+        "df_conf_matrix = confusion_matrix(y_test, pred_model)\n",
+        "print(\"confusion matrix\")\n",
+        "print(df_conf_matrix)\n",
+        "print('\\n')\n",
+        "print(\"Accuracy of KNN:\", df_acc_scores*100,'\\n')\n",
+        "print(classification_report(y_test, pred_model))"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "confusion matrix\n",
+            "[[74 26]\n",
+            " [35 70]]\n",
+            "\n",
+            "\n",
+            "Accuracy of KNN: 70.24390243902438 \n",
+            "\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.68      0.74      0.71       100\n",
+            "           1       0.73      0.67      0.70       105\n",
+            "\n",
+            "    accuracy                           0.70       205\n",
+            "   macro avg       0.70      0.70      0.70       205\n",
+            "weighted avg       0.70      0.70      0.70       205\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "LSXGZONq5bSf",
+        "outputId": "19cff7d7-ebaa-422f-fbb2-969e0361872d"
+      },
+      "source": [
+        "# IMPLEMENTING NAIVE BAYES \n",
+        "model = GaussianNB()\n",
+        "\n",
+        "fit_model = model.fit(X_train, y_train)                                       \n",
+        "pred_model = fit_model.predict(X_test)\n",
+        "df_acc_scores = accuracy_score(y_test, pred_model)\n",
+        "df_conf_matrix = confusion_matrix(y_test, pred_model)\n",
+        "print(\"confusion matrix\")\n",
+        "print(df_conf_matrix)\n",
+        "print('\\n')\n",
+        "print(\"Accuracy of Naive Bayes:\", df_acc_scores*100,'\\n')\n",
+        "print(classification_report(y_test, pred_model))"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "confusion matrix\n",
+            "[[74 26]\n",
+            " [ 9 96]]\n",
+            "\n",
+            "\n",
+            "Accuracy of Decision Tree: 82.92682926829268 \n",
+            "\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.89      0.74      0.81       100\n",
+            "           1       0.79      0.91      0.85       105\n",
+            "\n",
+            "    accuracy                           0.83       205\n",
+            "   macro avg       0.84      0.83      0.83       205\n",
+            "weighted avg       0.84      0.83      0.83       205\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "d8WZwBwY7dT2"
+      },
+      "source": [
+        "#Discretization with Grid Search"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "S1qVzruf6HHl"
+      },
+      "source": [
+        "# Bin age, trestbps, chol, thalach, oldpeak\n",
+        "# qcut divides the bins so that each bin aprx has the same number of instances\n",
+        "\n",
+        "heart['age'] = pd.qcut(heart['age'], q=4)\n",
+        "heart['trestbps'] = pd.qcut(heart['trestbps'], q=4)\n",
+        "heart['chol'] = pd.qcut(heart['chol'], q=4)\n",
+        "#heart['thalach'] = pd.qcut(heart['thalach'], q=4)\n",
+        "heart['oldpeak'] = pd.qcut(heart['oldpeak'], q=2)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "GBfcjpxs75ru"
+      },
+      "source": [
+        "#convert from interval to ordinal\n",
+        "from sklearn.preprocessing import LabelEncoder  \n",
+        "le = LabelEncoder()\n",
+        "\n",
+        "encoded_age = le.fit_transform(heart['age'])\n",
+        "heart['age'] = encoded_age\n",
+        "\n",
+        "encoded_trest = le.fit_transform(heart['trestbps'])\n",
+        "heart['trestbps'] = encoded_trest\n",
+        "\n",
+        "encoded_chol = le.fit_transform(heart['chol'])\n",
+        "heart['chol'] = encoded_chol\n",
+        "\n",
+        "#encoded_thalach = le.fit_transform(heart['thalach'])\n",
+        "#heart['thalach'] = encoded_thalach\n",
+        "\n",
+        "encoded_old = le.fit_transform(heart['oldpeak'])\n",
+        "heart['oldpeak'] = encoded_old"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "NEP4c-Zz8R4Z"
+      },
+      "source": [
+        "# seperate predictor and response variable\n",
+        "x = heart.drop(['target'], axis=1)  \n",
+        "y = heart['target'] \n",
+        "\n",
+        "#split the data with test = 30%   train = 70%\n",
+        "X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.3) "
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "n0Sm8Bp89wy3",
+        "outputId": "332421c2-63ff-4d36-8297-dffeed5867ac"
+      },
+      "source": [
+        "# IMPLEMENTING LOGISTIC REGRESSION\n",
+        "model = LogisticRegression(max_iter=1000)\n",
+        "\n",
+        "# optimize size of penalty\n",
+        "param_grid = {'C' : np.logspace(-4, 4, 20)}\n",
+        "\n",
+        "search = GridSearchCV(model, param_grid, scoring='accuracy', cv=10, refit=True)\n",
+        "fit_model = search.fit(X_train, y_train)                                      \n",
+        "best_model = fit_model.best_estimator_  \n",
+        "pred_model = best_model.predict(X_test)\n",
+        "df_acc_scores = accuracy_score(y_test, pred_model)\n",
+        "df_conf_matrix = confusion_matrix(y_test, pred_model)\n",
+        "print(\"confusion matrix\")\n",
+        "print(df_conf_matrix)\n",
+        "print('\\n')\n",
+        "print(\"Accuracy of Logistic Regression: \", df_acc_scores*100,'\\n')\n",
+        "print(classification_report(y_test, pred_model))\n",
+        "print('best params: ', fit_model.best_params_)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "confusion matrix\n",
+            "[[119  35]\n",
+            " [ 23 131]]\n",
+            "\n",
+            "\n",
+            "Accuracy of Logistic Regression:  81.16883116883116 \n",
+            "\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.84      0.77      0.80       154\n",
+            "           1       0.79      0.85      0.82       154\n",
+            "\n",
+            "    accuracy                           0.81       308\n",
+            "   macro avg       0.81      0.81      0.81       308\n",
+            "weighted avg       0.81      0.81      0.81       308\n",
+            "\n",
+            "best params:  {'C': 0.615848211066026}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ivytBSF6-Fke",
+        "outputId": "85172c48-fc70-4085-939e-4d58cf614b6e"
+      },
+      "source": [
+        "# IMPLEMENTING DECISION TREE\n",
+        "model = DecisionTreeClassifier(criterion='entropy')\n",
+        "\n",
+        "max_depth = range(1, 11, 2) # odd numbers for max depth\n",
+        "param_grid = dict(max_depth=max_depth)                                                           \n",
+        "search = GridSearchCV(model, param_grid, scoring='accuracy', cv=10, refit=True)\n",
+        "fit_model = search.fit(X_train, y_train)                                      \n",
+        "best_model = fit_model.best_estimator_  \n",
+        "pred_model = best_model.predict(X_test)\n",
+        "df_acc_scores = accuracy_score(y_test, pred_model)\n",
+        "df_conf_matrix = confusion_matrix(y_test, pred_model)\n",
+        "print(\"confusion matrix\")\n",
+        "print(df_conf_matrix)\n",
+        "print('\\n')\n",
+        "print(\"Accuracy of Decision Tree Classifier:\", df_acc_scores*100,'\\n')\n",
+        "print(classification_report(y_test, pred_model))\n",
+        "print('best max depth: ', fit_model.best_params_)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "confusion matrix\n",
+            "[[154   0]\n",
+            " [  7 147]]\n",
+            "\n",
+            "\n",
+            "Accuracy of Decision Tree Classifier: 97.72727272727273 \n",
+            "\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.96      1.00      0.98       154\n",
+            "           1       1.00      0.95      0.98       154\n",
+            "\n",
+            "    accuracy                           0.98       308\n",
+            "   macro avg       0.98      0.98      0.98       308\n",
+            "weighted avg       0.98      0.98      0.98       308\n",
+            "\n",
+            "best max depth:  {'max_depth': 9}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "sPFsGT4Q-ft5",
+        "outputId": "9ab6e67b-9337-4ec0-ace5-067c6c81d3f4"
+      },
+      "source": [
+        "# IMPLEMENTING KNN\n",
+        "model = KNeighborsClassifier()\n",
+        "\n",
+        "k_range = list(range(1, 31))\n",
+        "param_grid = dict(n_neighbors=k_range)\n",
+        "  \n",
+        "# defining parameter range\n",
+        "search = GridSearchCV(model, param_grid, cv=10, scoring='accuracy', refit=True)\n",
+        "  \n",
+        "# fitting the model for grid search\n",
+        "fit_model = search.fit(X_train, y_train)\n",
+        "best_model = fit_model.best_estimator_  \n",
+        "pred_model = best_model.predict(X_test)\n",
+        "df_acc_scores = accuracy_score(y_test, pred_model)\n",
+        "df_conf_matrix = confusion_matrix(y_test, pred_model)\n",
+        "print(\"confusion matrix\")\n",
+        "print(df_conf_matrix)\n",
+        "print('\\n')\n",
+        "print(\"Accuracy of KNN Classifier:\", df_acc_scores*100,'\\n')\n",
+        "print(classification_report(y_test, pred_model))\n",
+        "print('best k neighbors: ', fit_model.best_params_)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "confusion matrix\n",
+            "[[144   8]\n",
+            " [  6 150]]\n",
+            "\n",
+            "\n",
+            "Accuracy of KNN Classifier: 95.45454545454545 \n",
+            "\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.96      0.95      0.95       152\n",
+            "           1       0.95      0.96      0.96       156\n",
+            "\n",
+            "    accuracy                           0.95       308\n",
+            "   macro avg       0.95      0.95      0.95       308\n",
+            "weighted avg       0.95      0.95      0.95       308\n",
+            "\n",
+            "best k neighbors:  {'n_neighbors': 1}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "e7ePzixR-l5m",
+        "outputId": "24d3d080-250c-41ed-d490-9d833b92bf23"
+      },
+      "source": [
+        "# IMPLEMENTING NAIVE BAYES\n",
+        "model = GaussianNB()\n",
+        "\n",
+        "# solves the zero probability problem\n",
+        "param_grid = {'var_smoothing': np.logspace(0,-9, num=100)}\n",
+        "\n",
+        "# defining parameter range\n",
+        "search = GridSearchCV(model, param_grid, cv=10, scoring='accuracy', refit=True)\n",
+        "  \n",
+        "# fitting the model for grid search\n",
+        "fit_model = search.fit(X_train, y_train)\n",
+        "best_model = fit_model.best_estimator_  \n",
+        "pred_model = best_model.predict(X_test)\n",
+        "df_acc_scores = accuracy_score(y_test, pred_model)\n",
+        "df_conf_matrix = confusion_matrix(y_test, pred_model)\n",
+        "print(\"confusion matrix\")\n",
+        "print(df_conf_matrix)\n",
+        "print('\\n')\n",
+        "print(\"Accuracy of Naive Bayes:\", df_acc_scores*100,'\\n')\n",
+        "print(classification_report(y_test, pred_model))\n",
+        "print('best params: ', fit_model.best_params_)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "confusion matrix\n",
+            "[[118  36]\n",
+            " [ 18 136]]\n",
+            "\n",
+            "\n",
+            "Accuracy of Naive Bayes: 82.46753246753246 \n",
+            "\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.87      0.77      0.81       154\n",
+            "           1       0.79      0.88      0.83       154\n",
+            "\n",
+            "    accuracy                           0.82       308\n",
+            "   macro avg       0.83      0.82      0.82       308\n",
+            "weighted avg       0.83      0.82      0.82       308\n",
+            "\n",
+            "best params:  {'var_smoothing': 0.0533669923120631}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "9y-df8dMBv5D"
+      },
+      "source": [
+        "#Feature Selection with Gridsearch"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "pLm2pxhf-zFt"
+      },
+      "source": [
+        "# LOGISTIC\n",
+        "pipe=make_pipeline(SelectKBest(score_func=chi2), LogisticRegression(max_iter=1000))\n",
+        "params={'selectkbest__k':[1,2,3,4,5,6]}\n",
+        "\n",
+        "search = GridSearchCV(pipe, params, cv=10, scoring='accuracy', refit=True)\n",
+        "\n",
+        "# fitting the model for grid search\n",
+        "fit_model = search.fit(X_train,y_train)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "_NRcL3yFDXM3",
+        "outputId": "18d8bb30-048b-4a97-f614-9a5085018fca"
+      },
+      "source": [
+        "# Know what number of features to use\n",
+        "fit_model.best_params_"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "{'selectkbest__k': 6}"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 74
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "zvamgaHrDaTg",
+        "outputId": "d9b62ff9-6038-42c5-e15d-e2a23bc40faa"
+      },
+      "source": [
+        "# DECISION TREE\n",
+        "pipe=make_pipeline(SelectKBest(score_func=chi2), DecisionTreeClassifier(criterion='entropy'))\n",
+        "params={'selectkbest__k':[1,2,3,4,5,6]}\n",
+        "\n",
+        "search = GridSearchCV(pipe, params, cv=10, scoring='accuracy', refit=True)\n",
+        "\n",
+        "# fitting the model for grid search\n",
+        "fit_model = search.fit(X_train,y_train)\n",
+        "\n",
+        "# Know what number of features to use\n",
+        "fit_model.best_params_"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "{'selectkbest__k': 6}"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 75
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "H8CmPwlQDf_-",
+        "outputId": "be8315d4-6536-4952-ac1c-8bfe4745ada3"
+      },
+      "source": [
+        "# KNN\n",
+        "pipe=make_pipeline(SelectKBest(score_func=chi2), KNeighborsClassifier())\n",
+        "params={'selectkbest__k':[1,2,3,4,5,6]}\n",
+        "\n",
+        "search = GridSearchCV(pipe, params, cv=10, scoring='accuracy', refit=True)\n",
+        "\n",
+        "# fitting the model for grid search\n",
+        "fit_model = search.fit(X_train,y_train)\n",
+        "\n",
+        "fit_model.best_params_"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "{'selectkbest__k': 6}"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 76
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "hhtfikN9Dkq-",
+        "outputId": "9d0821d3-6eb2-4df5-e8d3-f8b9021a0b43"
+      },
+      "source": [
+        "# NAIVE BAYES\n",
+        "pipe=make_pipeline(SelectKBest(score_func=chi2), GaussianNB())\n",
+        "params={'selectkbest__k':[1,2,3,4,5,6]}\n",
+        "\n",
+        "search = GridSearchCV(pipe, params, cv=10, scoring='accuracy', refit=True)\n",
+        "\n",
+        "# fitting the model for grid search\n",
+        "fit_model = search.fit(X_train,y_train)\n",
+        "\n",
+        "fit_model.best_params_"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "{'selectkbest__k': 6}"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 78
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "J14UOc01EnkC"
+      },
+      "source": [
+        "###Extracting top 6 features"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "-ukyNSiRDo7g"
+      },
+      "source": [
+        " #extracting top 6 features\n",
+        "best_features = SelectKBest(score_func=chi2, k=6)     \n",
+        "fit = best_features.fit(X_train,y_train)\n",
+        "\n",
+        "#see what columns are selected and their scores\n",
+        "filter = best_features.get_support()                 \n",
+        "cols = X_train.columns\n",
+        "col = cols[filter]\n",
+        "score = fit.scores_[filter]"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 237
+        },
+        "id": "KSOuM07vEkT5",
+        "outputId": "485d5877-f38a-4173-ffb6-0c4fba41a9d9"
+      },
+      "source": [
+        "# Create df to view selected attributes and scores\n",
+        "# Higher chi2 means 2 attribtes are dependent which is good for classification\n",
+        "dictt = {}                 \n",
+        "for i in range(len(col)):\n",
+        "  dictt[col[i]] = score[i]\n",
+        "\n",
+        "pdd = pd.DataFrame()\n",
+        "pdd['Attributes'] = dictt.keys()\n",
+        "pdd['Chi2 Scores'] = dictt.values()\n",
+        "\n",
+        "pdd_sort = pdd.sort_values(by=['Chi2 Scores'], ascending=False)\n",
+        "\n",
+        "pdp = pdd_sort.set_index('Attributes')\n",
+        "chi_scores = pdp.reset_index()\n",
+        "chi_scores"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>Attributes</th>\n",
+              "      <th>Chi2 Scores</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>ca</td>\n",
+              "      <td>152.689923</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>cp</td>\n",
+              "      <td>118.321953</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>exang</td>\n",
+              "      <td>82.626996</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>oldpeak</td>\n",
+              "      <td>62.765684</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>age</td>\n",
+              "      <td>35.713800</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>5</th>\n",
+              "      <td>sex</td>\n",
+              "      <td>18.777302</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "  Attributes  Chi2 Scores\n",
+              "0         ca   152.689923\n",
+              "1         cp   118.321953\n",
+              "2      exang    82.626996\n",
+              "3    oldpeak    62.765684\n",
+              "4        age    35.713800\n",
+              "5        sex    18.777302"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 80
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "f3LUNaAqJtbQ"
+      },
+      "source": [
+        "# seperate predictor and response variable\n",
+        "x = heart[['ca','cp','exang','oldpeak','age','sex']] \n",
+        "y = heart['target'] \n",
+        "\n",
+        "#split the data with test = 30%   train = 70%\n",
+        "X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.3)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "PBYT4-uDJ0HE",
+        "outputId": "7ae28270-a34d-4ddf-9aff-da2c9735f5b3"
+      },
+      "source": [
+        "# IMPLEMENTING LOGISTIC REGRESSION\n",
+        "model = LogisticRegression(max_iter=1000)\n",
+        "\n",
+        "# optimize size of penalty\n",
+        "param_grid = {'C' : np.logspace(-4, 4, 20)}\n",
+        "\n",
+        "search = GridSearchCV(model, param_grid, scoring='accuracy', cv=10, refit=True)\n",
+        "fit_model = search.fit(X_train, y_train)                                      \n",
+        "best_model = fit_model.best_estimator_  \n",
+        "pred_model = best_model.predict(X_test)\n",
+        "df_acc_scores = accuracy_score(y_test, pred_model)\n",
+        "df_conf_matrix = confusion_matrix(y_test, pred_model)\n",
+        "print(\"confusion matrix\")\n",
+        "print(df_conf_matrix)\n",
+        "print('\\n')\n",
+        "print(\"Accuracy of Logistic Regression: \", df_acc_scores*100,'\\n')\n",
+        "print(classification_report(y_test, pred_model))\n",
+        "print('best params: ', fit_model.best_params_)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "confusion matrix\n",
+            "[[125  28]\n",
+            " [ 22 133]]\n",
+            "\n",
+            "\n",
+            "Accuracy of Logistic Regression:  83.76623376623377 \n",
+            "\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.85      0.82      0.83       153\n",
+            "           1       0.83      0.86      0.84       155\n",
+            "\n",
+            "    accuracy                           0.84       308\n",
+            "   macro avg       0.84      0.84      0.84       308\n",
+            "weighted avg       0.84      0.84      0.84       308\n",
+            "\n",
+            "best params:  {'C': 0.615848211066026}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "IwTPmLdSJ3Uh",
+        "outputId": "27ceee34-e608-4070-c6a3-92c4de83756f"
+      },
+      "source": [
+        "# IMPLEMENTING DECISION TREE\n",
+        "model = DecisionTreeClassifier(criterion='entropy')\n",
+        "\n",
+        "max_depth = range(1, 11, 2) # odd numbers for max depth\n",
+        "param_grid = dict(max_depth=max_depth)                                                           \n",
+        "search = GridSearchCV(model, param_grid, scoring='accuracy', cv=10, refit=True)\n",
+        "fit_model = search.fit(X_train, y_train)                                      \n",
+        "best_model = fit_model.best_estimator_  \n",
+        "pred_model = best_model.predict(X_test)\n",
+        "df_acc_scores = accuracy_score(y_test, pred_model)\n",
+        "df_conf_matrix = confusion_matrix(y_test, pred_model)\n",
+        "print(\"confusion matrix\")\n",
+        "print(df_conf_matrix)\n",
+        "print('\\n')\n",
+        "print(\"Accuracy of Decision Tree Classifier:\", df_acc_scores*100,'\\n')\n",
+        "print(classification_report(y_test, pred_model))\n",
+        "print('best max depth: ', fit_model.best_params_)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "confusion matrix\n",
+            "[[140  13]\n",
+            " [  3 152]]\n",
+            "\n",
+            "\n",
+            "Accuracy of Decision Tree Classifier: 94.8051948051948 \n",
+            "\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.98      0.92      0.95       153\n",
+            "           1       0.92      0.98      0.95       155\n",
+            "\n",
+            "    accuracy                           0.95       308\n",
+            "   macro avg       0.95      0.95      0.95       308\n",
+            "weighted avg       0.95      0.95      0.95       308\n",
+            "\n",
+            "best max depth:  {'max_depth': 9}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "8bxYzKOtJ4AB",
+        "outputId": "03aaf4b1-0839-4e50-dde5-389aaab4de51"
+      },
+      "source": [
+        "# IMPLEMENTING KNN\n",
+        "model = KNeighborsClassifier()\n",
+        "\n",
+        "k_range = list(range(1, 31))\n",
+        "param_grid = dict(n_neighbors=k_range)\n",
+        "  \n",
+        "# defining parameter range\n",
+        "search = GridSearchCV(model, param_grid, cv=10, scoring='accuracy', refit=True)\n",
+        "  \n",
+        "# fitting the model for grid search\n",
+        "fit_model = search.fit(X_train, y_train)\n",
+        "best_model = fit_model.best_estimator_  \n",
+        "pred_model = best_model.predict(X_test)\n",
+        "df_acc_scores = accuracy_score(y_test, pred_model)\n",
+        "df_conf_matrix = confusion_matrix(y_test, pred_model)\n",
+        "print(\"confusion matrix\")\n",
+        "print(df_conf_matrix)\n",
+        "print('\\n')\n",
+        "print(\"Accuracy of KNN Classifier:\", df_acc_scores*100,'\\n')\n",
+        "print(classification_report(y_test, pred_model))\n",
+        "print('best k neighbors: ', fit_model.best_params_)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "confusion matrix\n",
+            "[[145   8]\n",
+            " [  3 152]]\n",
+            "\n",
+            "\n",
+            "Accuracy of KNN Classifier: 96.42857142857143 \n",
+            "\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.98      0.95      0.96       153\n",
+            "           1       0.95      0.98      0.97       155\n",
+            "\n",
+            "    accuracy                           0.96       308\n",
+            "   macro avg       0.96      0.96      0.96       308\n",
+            "weighted avg       0.96      0.96      0.96       308\n",
+            "\n",
+            "best k neighbors:  {'n_neighbors': 1}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "r29T-tO3KK0j",
+        "outputId": "1268e62f-306e-4714-b3a1-7a11ad068d15"
+      },
+      "source": [
+        "# IMPLEMENTING NAIVE BAYES\n",
+        "model = GaussianNB()\n",
+        "\n",
+        "# solves the zero probability problem\n",
+        "param_grid = {'var_smoothing': np.logspace(0,-9, num=100)}\n",
+        "\n",
+        "# defining parameter range\n",
+        "search = GridSearchCV(model, param_grid, cv=10, scoring='accuracy', refit=True)\n",
+        "  \n",
+        "# fitting the model for grid search\n",
+        "fit_model = search.fit(X_train, y_train)\n",
+        "best_model = fit_model.best_estimator_  \n",
+        "pred_model = best_model.predict(X_test)\n",
+        "df_acc_scores = accuracy_score(y_test, pred_model)\n",
+        "df_conf_matrix = confusion_matrix(y_test, pred_model)\n",
+        "print(\"confusion matrix\")\n",
+        "print(df_conf_matrix)\n",
+        "print('\\n')\n",
+        "print(\"Accuracy of Naive Bayes:\", df_acc_scores*100,'\\n')\n",
+        "print(classification_report(y_test, pred_model))\n",
+        "print('best params: ', fit_model.best_params_)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "confusion matrix\n",
+            "[[120  33]\n",
+            " [ 14 141]]\n",
+            "\n",
+            "\n",
+            "Accuracy of Naive Bayes: 84.74025974025975 \n",
+            "\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.90      0.78      0.84       153\n",
+            "           1       0.81      0.91      0.86       155\n",
+            "\n",
+            "    accuracy                           0.85       308\n",
+            "   macro avg       0.85      0.85      0.85       308\n",
+            "weighted avg       0.85      0.85      0.85       308\n",
+            "\n",
+            "best params:  {'var_smoothing': 0.002848035868435802}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "cKl1GkSIKQNp"
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "k8sx5uPNSzX0"
+      },
+      "source": [
+        "#Confusion Matrix"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "daNVxwqiS74S"
+      },
+      "source": [
+        "[[140  13]\n",
+        " [  3 152]]\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "hLsP747OSzDj",
+        "outputId": "f607875f-3842-4800-d259-4a4ade4c6efd"
+      },
+      "source": [
+        "con_matrix_pred = np.array([[140,13],[3,152]])\n",
+        "con_matrix_pred"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([[140,  13],\n",
+              "       [  3, 152]])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 186
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 161
+        },
+        "id": "bWstLqVcS29_",
+        "outputId": "7bf919ab-f58c-401a-adbb-87979da66905"
+      },
+      "source": [
+        " #visualize confusion matrix\n",
+        "plt.style.use('default')\n",
+        "fig, ax = plt.subplots(figsize=(1, 1))                     \n",
+        "ax.matshow(con_matrix_pred, cmap=plt.cm.Greys, alpha=0.7)\n",
+        "for i in range(con_matrix_pred.shape[0]):\n",
+        "    for j in range(con_matrix_pred.shape[1]):\n",
+        "        ax.text(x=j, y=i,s=con_matrix_pred[i, j], va='center', ha='center', size='large')\n",
+        " \n",
+        "plt.xlabel('Predicted', fontsize=12)\n",
+        "plt.ylabel('Actual', fontsize=12)\n",
+        "#plt.title('Confusion Matrix', fontsize=12)\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "image/png": "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\n",
+            "text/plain": [
+              "<Figure size 100x100 with 1 Axes>"
+            ]
+          },
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Py9T9iVvTMid"
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
